@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>世界史 暗記カード（スマホ版）</title>
+<style>
+    /* スマホ特有のタップ時のハイライトやテキスト選択を無効化 */
+    * {
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+    }
+    body {
+        font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+        background-color: #f4f7f6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 0;
+        padding: 20px 10px;
+        touch-action: pan-y; /* 縦スクロールのみ許可 */
+    }
+    h1 {
+        color: #333;
+        font-size: 1.3em;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+    .instruction {
+        font-size: 0.85em;
+        color: #888;
+        margin-bottom: 15px;
+    }
+    .card-container {
+        perspective: 1000px;
+        width: 100%;
+        max-width: 400px;
+        height: 60vh; /* スマホの画面高さに合わせる */
+        max-height: 350px;
+        margin: 10px 0;
+        cursor: pointer;
+    }
+    .card {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+        transform-style: preserve-3d;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        border-radius: 16px;
+    }
+    .card.is-flipped {
+        transform: rotateY(180deg);
+    }
+    .card-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        box-sizing: border-box;
+        border-radius: 16px;
+        text-align: center;
+    }
+    .card-front {
+        background-color: #ffffff;
+        color: #333;
+        border: 2px solid #e0e0e0;
+    }
+    .card-back {
+        background-color: #e85a4f;
+        color: white;
+        transform: rotateY(180deg);
+        border: 2px solid #e85a4f;
+    }
+    .question-text {
+        font-size: 1.2em;
+        line-height: 1.6;
+        font-weight: 500;
+    }
+    .answer-text {
+        font-size: 1.8em;
+        font-weight: bold;
+    }
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 400px;
+        margin-top: 15px;
+        gap: 10px;
+    }
+    button {
+        padding: 12px;
+        font-size: 1em;
+        font-weight: bold;
+        border: none;
+        border-radius: 8px;
+        background-color: #4a4e69;
+        color: white;
+        cursor: pointer;
+        flex: 1;
+    }
+    button:active {
+        background-color: #22223b;
+    }
+    .progress {
+        margin-top: 15px;
+        font-weight: bold;
+        color: #555;
+    }
+</style>
+</head>
+<body>
+
+<h1>世界史一問一答 第2章</h1>
+<div class="instruction">タップで解答 / 左右スワイプでカード移動</div>
+
+<div class="card-container" id="cardContainer">
+    <div class="card" id="flashcard">
+        <div class="card-face card-front">
+            <div class="question-text" id="question"></div>
+        </div>
+        <div class="card-face card-back">
+            <div class="answer-text" id="answer"></div>
+        </div>
+    </div>
+</div>
+
+<div class="controls">
+    <button onclick="prevCard()">◀ 前へ</button>
+    <button onclick="shuffleCards()">🔀 シャッフル</button>
+    <button onclick="nextCard()">次へ ▶</button>
+</div>
+<div class="progress" id="progress"></div>
+
+<script>
+    // ※ここに前回の217問のデータ（flashcardsの中身）を貼り付けてもOKです。
+    // 今回は例として抜粋版を入れています。
+    let flashcards = [
+        { q: "モンゴル高原から黒海北岸にかけての草原地帯と、その南の砂漠・オアシス地域からなる地域の名称は何か。", a: "中央ユーラシア" },
+        { q: "独自の騎馬文化を生み、前7世紀頃からコーカサス・黒海北方の草原地帯を支配したイラン系遊牧民は何か。", a: "スキタイ" },
+        { q: "前221年に中国をはじめて統一した秦王で、統一後皇帝を称し、法家思想にもとづいた中央集権策を強行したのは誰か。", a: "秦王政(始皇帝)" },
+        { q: "前漢時代、武帝の命で中国最初の正史を完成させた歴史家は誰か。", a: "司馬遷" },
+        { q: "中国史上、220~280年の分裂時代を何と呼ぶか。", a: "三国時代" }
+    ];
+
+    let currentIndex = 0;
+    const card = document.getElementById('flashcard');
+    
+    function updateCard() {
+        card.classList.remove('is-flipped');
+        setTimeout(() => {
+            document.getElementById('question').textContent = flashcards[currentIndex].q;
+            document.getElementById('answer').textContent = flashcards[currentIndex].a;
+            document.getElementById('progress').textContent = `${currentIndex + 1} / ${flashcards.length}`;
+        }, 150); 
+    }
+
+    function flipCard() {
+        card.classList.toggle('is-flipped');
+    }
+
+    function nextCard() {
+        if (currentIndex < flashcards.length - 1) {
+            currentIndex++;
+            updateCard();
+        }
+    }
+
+    function prevCard() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            updateCard();
+        }
+    }
+
+    function shuffleCards() {
+        for (let i = flashcards.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [flashcards[i], flashcards[j]] = [flashcards[j], flashcards[i]];
+        }
+        currentIndex = 0;
+        updateCard();
+    }
+
+    // タップで裏返す
+    document.getElementById('cardContainer').addEventListener('click', flipCard);
+
+    // スワイプ操作（フリック）の検知
+    let touchstartX = 0;
+    let touchendX = 0;
+
+    document.getElementById('cardContainer').addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+    });
+
+    document.getElementById('cardContainer').addEventListener('touchend', e => {
+        touchendX = e.changedTouches[0].screenX;
+        handleGesture();
+    });
+
+    function handleGesture() {
+        const swipeThreshold = 50; // これ以上指を動かしたらスワイプと判定
+        if (touchendX < touchstartX - swipeThreshold) {
+            nextCard(); // 左へスワイプ（次へ）
+        }
+        if (touchendX > touchstartX + swipeThreshold) {
+            prevCard(); // 右へスワイプ（前へ）
+        }
+    }
+
+    updateCard();
+</script>
+</body>
+</html>
